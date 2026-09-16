@@ -134,6 +134,7 @@ body {
 .rhyme-group-medium h3 { color: var(--medium); }
 .rhyme-group-weak h3 { color: var(--weak); }
 .count { color: var(--muted); font-weight: normal; font-size: 13px; }
+.show-more-btn { margin-top: 10px; }
 
 .chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
 

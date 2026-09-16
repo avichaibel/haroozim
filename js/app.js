@@ -21,7 +21,9 @@ var state = {
   results: [],
   showWeak: false, // מצב "רופף": מציג גם חרוזי סיומת בלבד
   lengthFilter: "all", // all | vshort | short | medium | long
+  expandedGroups: {}, // אילו קבוצות (perfect/strong/medium/weak) המשתמש לחץ "הצג עוד" עליהן
 };
+var RESULTS_PAGE_SIZE = 60; // כמה חרוזים להציג בכל קבוצה לפני "הצג עוד" (למילים נפוצות כמו "-ים" יכולים להיות אלפי חרוזים)
 
 // -------- ניקוד/תבניות עזר --------
 var NIQQUD_RE = /[֑-ׇ]/g;
@@ -124,15 +126,25 @@ function getCustomWords() {
 function saveCustomWords(list) {
   try {
     localStorage.setItem(LS_CUSTOM_WORDS, JSON.stringify(list));
+    invalidateWordsCache();
   } catch (e) {
     alert("שגיאה בשמירת המילון האישי (ייתכן ואחסון הדפדפן מלא).");
   }
 }
 
+var _allWordsCache = null;
 function getAllWords() {
+  if (_allWordsCache) return _allWordsCache;
   var base = window.HAROOZIM_BASE_WORDS || [];
+  var extended = window.HAROOZIM_EXTENDED_WORDS || [];
   var custom = getCustomWords();
-  return Array.from(new Set(base.concat(custom)));
+  _allWordsCache = Array.from(new Set(base.concat(extended, custom)));
+  return _allWordsCache;
+}
+
+// המילון האישי משתנה בזמן ריצה (הוספה/הסרה) - צריך לבטל את המטמון כדי שישתקף מיד בחיפוש הבא
+function invalidateWordsCache() {
+  _allWordsCache = null;
 }
 
 function findRhymes(inputWord, minRunLength) {
@@ -287,14 +299,26 @@ function renderResults() {
     var key = pair[0], title = pair[1];
     var list = groups[key];
     if (!list.length) return;
+    var expanded = !!state.expandedGroups[key];
+    var visible = expanded ? list : list.slice(0, RESULTS_PAGE_SIZE);
+    var hiddenCount = list.length - visible.length;
     html += '<div class="rhyme-group rhyme-group-' + key + '">';
     html += '<h3>' + title + ' <span class="count">(' + list.length + ')</span></h3>';
     html += '<div class="chip-list">';
-    list.forEach(function (r) { html += chipHtml(r, key); });
-    html += '</div></div>';
+    visible.forEach(function (r) { html += chipHtml(r, key); });
+    html += '</div>';
+    if (hiddenCount > 0) {
+      html += '<button class="btn btn-outline btn-small show-more-btn" onclick="expandGroup(' + jsArg(key) + ')">הצג עוד ' + hiddenCount + '</button>';
+    }
+    html += '</div>';
   });
 
   box.innerHTML = html;
+}
+
+function expandGroup(key) {
+  state.expandedGroups[key] = true;
+  renderResults();
 }
 
 function addToHistory(word) {
@@ -335,6 +359,7 @@ function doSearch() {
   el("ai-results").innerHTML = "";
   state.word = word;
   state.results = word ? findRhymes(word) : [];
+  state.expandedGroups = {};
   renderResults();
   if (word) addToHistory(word);
 }
