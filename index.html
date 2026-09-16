@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>החרזן של בן יהודה - כלי חרוזים בעברית לכתיבת שירים</title>
+<meta name="description" content="החרזן של בן יהודה: הקלידו מילה וקבלו רשימת מילים שמתחרזות איתה לפי דמיון צליל אמיתי, לא רק אותיות דומות. כלי חינמי לכותבי שירים, ראפרים ומשוררים.">
+<meta name="keywords" content="חרוזים, מחרוזת, מילים מתחרזות, כתיבת שירים, חרוז לשיר, מילון חרוזים">
+<link rel="canonical" href="https://avichaibel.github.io/haroozim/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://avichaibel.github.io/haroozim/">
+<meta property="og:title" content="החרזן של בן יהודה - כלי חרוזים בעברית לכתיבת שירים">
+<meta property="og:description" content="הקלידו מילה וקבלו חרוזים אמיתיים לפי צליל, לא רק כתיב. כלי חינמי לכותבי שירים.">
+<meta property="og:locale" content="he_IL">
+<link rel="stylesheet" href="css/styles.css?v=1">
+</head>
+<body>
+
+<header class="top-bar">
+  <h1>🎵 החרזן של בן יהודה</h1>
+  <button id="settings-btn" class="btn btn-icon" title="הגדרות">⚙️</button>
+</header>
+
+<main class="container">
+
+  <section class="search-box">
+    <div class="search-row">
+      <input type="text" id="word-input" placeholder="הקלידו מילה, למשל: מכונה" autocomplete="off" autofocus>
+      <button id="search-btn" class="btn btn-primary">מצא חרוזים</button>
+    </div>
+    <div id="history" class="history-row"></div>
+  </section>
+
+  <div id="ad-slot-top" class="ad-slot" data-slot="top"></div>
+
+  <section class="controls-row">
+    <div class="segmented" title="עד כמה להרחיב את החיפוש">
+      <button id="mode-strict" class="segmented-btn active">חרוזי צליל (מומלץ)</button>
+      <button id="mode-loose" class="segmented-btn">גם חרוזי סיומת רחוקים</button>
+    </div>
+    <div class="length-filters">
+      <span class="length-filters-label">אורך:</span>
+      <button class="length-filter-btn active" data-filter="all">הכל</button>
+      <button class="length-filter-btn" data-filter="vshort">קצרות מאוד</button>
+      <button class="length-filter-btn" data-filter="short">קצרות</button>
+      <button class="length-filter-btn" data-filter="medium">בינוניות</button>
+      <button class="length-filter-btn" data-filter="long">ארוכות</button>
+    </div>
+    <button id="toggle-favorites-btn" class="btn btn-secondary btn-small">★ הרשימה שלי (<span id="fav-count">0</span>)</button>
+  </section>
+
+  <div id="favorites-panel" class="favorites-panel" style="display:none"></div>
+
+  <div id="result-count" class="result-count"></div>
+  <section id="results" class="results"></section>
+
+  <section id="ai-suggest-wrap" class="ai-suggest-wrap" style="display:none">
+    <button id="ai-suggest-btn" class="btn btn-outline">שפר עם AI</button>
+    <div id="ai-results" class="ai-results"></div>
+  </section>
+
+  <section id="settings-panel" class="settings-panel" style="display:none">
+    <h2>הגדרות</h2>
+
+    <div class="settings-block">
+      <h3>מילון אישי</h3>
+      <p class="hint">הוסיפו מילים משלכם (אפשר כמה מילים ברצף, מופרדות ברווח או פסיק) כדי לשפר את התוצאות עם הזמן.
+      לתשומת לב: מילים חדשות שמסתיימות ב-"ות" (כמו עצמאות/דמעות) לא יזוהו אוטומטית כ"חולם" או "שורוק" - אם תבחינו בהתאמה לא מדויקת, ספרו לי ואוסיף אותן לרשימת החריגים בקוד.</p>
+      <div class="search-row">
+        <input type="text" id="custom-word-input" placeholder="לדוגמה: געגוע, כמיהה">
+        <button id="add-custom-word-btn" class="btn btn-secondary">הוסף</button>
+      </div>
+      <div id="custom-words-list" class="chip-list"></div>
+      <div class="settings-actions">
+        <button id="export-btn" class="btn btn-outline btn-small">ייצוא מילון אישי</button>
+        <label class="btn btn-outline btn-small file-label">
+          ייבוא מילון אישי
+          <input type="file" id="import-input" accept="application/json" style="display:none">
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-block">
+      <h3>שיפור עם AI (אופציונלי)</h3>
+      <p class="hint">
+        הכלי עובד מצוין גם בלי זה. אם תזינו מפתח API של Anthropic, תופיע אפשרות "שפר עם AI" שמביאה הצעות חרוזים נוספות
+        ויצירתיות ישירות מהדפדפן שלכם. המפתח נשמר רק במחשב שלכם (localStorage) ולא נשלח לשום מקום חוץ מ-Anthropic.
+      </p>
+      <div class="search-row">
+        <input type="password" id="ant-key-input" placeholder="sk-ant-...">
+        <button id="save-key-btn" class="btn btn-secondary">שמור מפתח</button>
+      </div>
+    </div>
+
+    <div class="settings-block">
+      <p class="hint">מספר המילים במילון כרגע: <b id="word-count">0</b></p>
+    </div>
+  </section>
+
+  <div id="ad-slot-bottom" class="ad-slot" data-slot="bottom"></div>
+
+  <section class="about-section">
+    <h2>איך הכלי הזה עובד?</h2>
+    <p>
+      החרזן של בן יהודה עוזר לכם למצוא מילים שמתחרזות בצליל אמיתי, לא רק באותיות דומות בכתיב. לדוגמה,
+      "מכונה" ו"נכונה" נשמעות כמעט זהות בסוף המילה - חרוז חזק. לעומת זאת, "מכורה" מתחילה דומה אבל
+      מסתיימת בצליל שונה, ולכן היא לא חרוז טוב, גם אם יש אותיות משותפות. הכלי מתחשב גם בהבדלים
+      עדינים כמו ההבדל בין חולם לשורוק (למשל בין "דמעות" ל"עצמאות"), כדי שהחרוזים שתקבלו יישמעו
+      טוב באמת כשתשירו או תקריאו אותם בקול.
+    </p>
+    <p>
+      אפשר להוסיף מילים אישיות למילון בהגדרות, לסמן חרוזים שנבחרו לשיר עם ★, ולסנן לפי אורך המילה
+      או לפי חוזק החרוז. הכלי חינמי, לא דורש הרשמה, וכל הנתונים שלכם (מילון אישי, היסטוריה, מועדפים)
+      נשמרים רק בדפדפן שלכם.
+    </p>
+  </section>
+
+  <footer class="site-footer">
+    <a href="privacy.html">מדיניות פרטיות</a>
+  </footer>
+
+</main>
+
+<div id="cookie-banner" class="cookie-banner" style="display:none">
+  <p>
+    אתר זה עשוי להשתמש בעוגיות (כולל של Google) לצורך הצגת מודעות מותאמות אישית.
+    <a href="privacy.html">מדיניות פרטיות</a>
+  </p>
+  <button id="cookie-accept-btn" class="btn btn-primary btn-small">הבנתי, אישרתי</button>
+</div>
+
+<script src="js/words.js?v=1"></script>
+<script src="js/app.js?v=1"></script>
+</body>
+</html>
