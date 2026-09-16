@@ -477,7 +477,11 @@ function updateAiButtonVisibility() {
 
 function toggleSettings() {
   var panel = el("settings-panel");
-  panel.style.display = panel.style.display === "block" ? "none" : "block";
+  var opening = panel.style.display !== "block";
+  panel.style.display = opening ? "block" : "none";
+  if (opening) {
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 // -------- שיפור עם AI (אופציונלי, דורש מפתח Anthropic) --------
