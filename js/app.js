@@ -72,8 +72,9 @@ function letterMatchScore(a, b) {
   return 0;
 }
 
-// משווה את סופי שתי המילים (מהסוף להתחלה) ומחזיר {score, runLength}
-function rhymeScore(word, candidate) {
+// משווה את סופי שתי המילים לפי אותיות בלבד (מהסוף להתחלה) ומחזיר {score, runLength}.
+// זו שיטת הגיבוי - משמשת רק כשאין נתוני ניקוד לאחת המילים (למשל מילה אישית חדשה).
+function rhymeScoreLetters(word, candidate) {
   var w = normalizeWord(word);
   var c = normalizeWord(candidate);
   if (!w || !c) return { score: 0, runLength: 0 };
@@ -104,10 +105,89 @@ function rhymeScore(word, candidate) {
     i -= 1;
     j -= 1;
   }
-  return { score: score, runLength: runLength };
+  return { score: score, runLength: runLength, method: "letters" };
+}
+
+// -------- השוואה פונטית (מבוססת ניקוד אמיתי, ולא רק אותיות) --------
+// window.HAROOZIM_PHONETIC ממופה מילה -> מחרוזת מפתח מהצורה "עיצור1 קוד-תנועה1 עיצור2 קוד-תנועה2 ..."
+// (כל יחידה = 2 תווים; קוד תנועה הוא a/e/i/o/u או "_" לחוסר תנועה/שוואית). נבנה מראש מניקוד אמיתי
+// (Dicta Nakdan API), כך שהאלגוריתם משווה צליל אמיתי (כולל התנועה) ולא רק אותיות.
+function parsePhoneticKey(key) {
+  var units = [];
+  for (var i = 0; i < key.length; i += 2) {
+    units.push({ letter: key[i], vowel: key[i + 1] });
+  }
+  return units;
+}
+
+var _phoneticUnitsCache = {};
+function getPhoneticUnits(word) {
+  if (_phoneticUnitsCache[word] !== undefined) return _phoneticUnitsCache[word];
+  var table = window.HAROOZIM_PHONETIC;
+  var key = table ? table[word] : null;
+  var units = key ? parsePhoneticKey(key) : null;
+  _phoneticUnitsCache[word] = units;
+  return units;
+}
+
+function rhymeScorePhonetic(unitsW, unitsC) {
+  var i = unitsW.length - 1;
+  var j = unitsC.length - 1;
+  var score = 0;
+  var runLength = 0;
+  var exactRun = 0; // כמה יחידות ברצף *מהסוף* התאימו גם בעיצור וגם בתנועה (חרוז "מלא", לא רק קרוב)
+  var stillExact = true; // ברגע שהברה אחת לא תואמת בול, כל מה שלפניה כבר לא נספר כ"רצף מושלם"
+
+  while (i >= 0 && j >= 0) {
+    var ua = unitsW[i];
+    var ub = unitsC[j];
+    var la = FINAL_LETTERS[ua.letter] || ua.letter;
+    var lb = FINAL_LETTERS[ub.letter] || ub.letter;
+    var consonantScore = letterMatchScore(la, lb);
+    // עיצורים שלא נשמעים דומה בכלל - זה מספיק כדי לעצור (גם אם התנועה במקרה זהה)
+    if (consonantScore === 0) break;
+    var vowelMatch = ua.vowel === ub.vowel;
+    // אם התנועה שונה זה לא "חרוז מלא" באותה הברה, אבל עדיין יכול להיות חרוז קרוב/עיצורי -
+    // ממשיכים את הרצף עם ניקוד חלקי, במקום לעצור לגמרי (כדי לא לאבד זוגות כמו שלום/עולם)
+    score += consonantScore + (vowelMatch ? 3 : 0);
+    if (stillExact && vowelMatch && consonantScore === 3) {
+      exactRun += 1;
+    } else {
+      stillExact = false;
+    }
+    runLength += 1;
+    i -= 1;
+    j -= 1;
+  }
+  return { score: score, runLength: runLength, exactRun: exactRun, method: "phonetic" };
+}
+
+// משווה שתי מילים ומחזיר {score, runLength} - משתמש בניקוד אמיתי כשיש לשתי המילים נתוני ניקוד,
+// ונופל חזרה להשוואת אותיות בלבד אחרת (למשל מילים אישיות שהמשתמש הוסיף).
+function rhymeScore(word, candidate) {
+  var w = normalizeWord(word);
+  var c = normalizeWord(candidate);
+  if (!w || !c) return { score: 0, runLength: 0 };
+  if (w === c) return { score: -1, runLength: 0 };
+
+  var unitsW = getPhoneticUnits(w);
+  var unitsC = getPhoneticUnits(c);
+  if (unitsW && unitsC) {
+    return rhymeScorePhonetic(unitsW, unitsC);
+  }
+  return rhymeScoreLetters(w, c);
 }
 
 function rhymeStrength(result) {
+  if (result.method === "phonetic") {
+    // exactRun = כמה יחידות ברצף מתאימות גם בעיצור וגם בתנועה (חרוז מלא, לא רק קרוב)
+    if (result.exactRun >= 2) return { label: "חרוז מושלם", cls: "perfect" };
+    if (result.exactRun >= 1 && result.runLength >= 2) return { label: "חרוז חזק", cls: "strong" };
+    if (result.exactRun >= 1) return { label: "חרוז בינוני", cls: "medium" };
+    if (result.runLength >= 2) return { label: "חרוז קרוב", cls: "medium" };
+    return { label: "חרוז רחוק", cls: "weak" };
+  }
+  // גיבוי מבוסס אותיות בלבד (למילים בלי נתוני ניקוד, כמו מילים אישיות חדשות)
   if (result.runLength >= 4 && result.score >= 10) return { label: "חרוז מושלם", cls: "perfect" };
   if (result.runLength >= 3 && result.score >= 7) return { label: "חרוז חזק", cls: "strong" };
   if (result.runLength >= 2 && result.score >= 4) return { label: "חרוז בינוני", cls: "medium" };
@@ -153,7 +233,9 @@ function findRhymes(inputWord, minRunLength) {
   var results = [];
   all.forEach(function (candidate) {
     var r = rhymeScore(inputWord, candidate);
-    if (r.score > 0 && r.runLength >= minRunLength) {
+    // ביחידה פונטית אחת שמתאימה גם בעיצור וגם בתנועה (הברה שלמה זהה) - זה כבר משמעותי גם אם קצר
+    var passesMinLength = r.runLength >= minRunLength || (r.method === "phonetic" && r.exactRun >= 1);
+    if (r.score > 0 && passesMinLength) {
       var strength = rhymeStrength(r);
       results.push({ word: candidate, score: r.score, runLength: r.runLength, strength: strength });
     }
