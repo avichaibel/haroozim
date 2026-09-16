@@ -12,7 +12,7 @@ var LS_COOKIE_CONSENT = "haroozim_cookie_consent_v1";
 // -------- Google AdSense (ממתין לאישור) --------
 // אחרי שתאושרו ב-AdSense, מלאו כאן את מזהה המפרסם (ca-pub-XXXXXXXXXXXXXXXX)
 // ואת מזהי חריצי המודעות שתקבלו, ותורידו את ה-comment מהקוד בפונקציה loadAdsense().
-var ADSENSE_CLIENT = ""; // לדוגמה: "ca-pub-1234567890123456"
+var ADSENSE_CLIENT = "ca-pub-2024925916431434";
 var ADSENSE_SLOTS = { top: "", bottom: "" };
 
 // מצב תצוגה נוכחי (לא נשמר - חוזר לברירת מחדל בכל טעינה)
@@ -542,15 +542,11 @@ function initCookieBanner() {
   });
 }
 
-// טוען את סקריפט Google AdSense ומפעיל את חריצי המודעות - רק אחרי הסכמה לעוגיות,
-// ורק אחרי שממלאים ADSENSE_CLIENT למעלה בקובץ הזה (כלומר אחרי אישור בפועל מגוגל).
+// מפעיל את חריצי המודעות הידניים (<ins class="adsbygoogle">) - רק אחרי הסכמה לעוגיות.
+// סקריפט ה-AdSense עצמו כבר נטען ב-<head> (נדרש שם ע"י גוגל לצורך אימות האתר),
+// אז כאן רק דוחפים את חריצי המודעות שיש להם slot id אמיתי (ADSENSE_SLOTS).
 function loadAdsense() {
   if (!ADSENSE_CLIENT) return; // עדיין לא אושרתם/הגדרתם - לא טוענים כלום
-  var script = document.createElement("script");
-  script.async = true;
-  script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + encodeURIComponent(ADSENSE_CLIENT);
-  script.crossOrigin = "anonymous";
-  document.head.appendChild(script);
 
   Object.keys(ADSENSE_SLOTS).forEach(function (key) {
     var slotId = ADSENSE_SLOTS[key];
