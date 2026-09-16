@@ -15,6 +15,9 @@ var LS_COOKIE_CONSENT = "haroozim_cookie_consent_v1";
 var ADSENSE_CLIENT = "ca-pub-2024925916431434";
 var ADSENSE_SLOTS = { top: "", bottom: "" };
 
+// -------- Google Analytics (GA4) --------
+var GA_MEASUREMENT_ID = "G-M5WPDWXFD2";
+
 // מצב תצוגה נוכחי (לא נשמר - חוזר לברירת מחדל בכל טעינה)
 var state = {
   word: "",
@@ -643,6 +646,7 @@ function initCookieBanner() {
   if (!banner) return;
   if (hasCookieConsent()) {
     loadAdsense();
+    loadAnalytics();
     return;
   }
   banner.style.display = "flex";
@@ -650,7 +654,24 @@ function initCookieBanner() {
     localStorage.setItem(LS_COOKIE_CONSENT, "yes");
     banner.style.display = "none";
     loadAdsense();
+    loadAnalytics();
   });
+}
+
+// טוען את Google Analytics (GA4) - רק אחרי הסכמה לעוגיות, ורק אם הוגדר מזהה מדידה.
+function loadAnalytics() {
+  if (!GA_MEASUREMENT_ID || window._gaLoaded) return;
+  window._gaLoaded = true;
+  var script = document.createElement("script");
+  script.async = true;
+  script.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(GA_MEASUREMENT_ID);
+  document.head.appendChild(script);
+
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { window.dataLayer.push(arguments); }
+  window.gtag = gtag;
+  gtag("js", new Date());
+  gtag("config", GA_MEASUREMENT_ID);
 }
 
 // מפעיל את חריצי המודעות הידניים (<ins class="adsbygoogle">) - רק אחרי הסכמה לעוגיות.
