@@ -32,6 +32,8 @@ body {
   color: white;
 }
 .top-bar h1 { margin: 0; font-size: 22px; }
+.top-bar h1 a { color: inherit; text-decoration: none; }
+.top-bar h1 a:hover { opacity: 0.85; }
 
 .container {
   max-width: 900px;
