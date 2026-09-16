@@ -138,26 +138,30 @@ function rhymeScorePhonetic(unitsW, unitsC) {
   var j = unitsC.length - 1;
   var score = 0;
   var runLength = 0;
-  var exactRun = 0; // כמה יחידות ברצף *מהסוף* התאימו גם בעיצור וגם בתנועה (חרוז "מלא", לא רק קרוב)
-  var stillExact = true; // ברגע שהברה אחת לא תואמת בול, כל מה שלפניה כבר לא נספר כ"רצף מושלם"
+  var exactRun = 0; // כמה יחידות ברצף התאימו גם בעיצור וגם בתנועה (בלי "פתיחת הברה חופשית")
 
   while (i >= 0 && j >= 0) {
     var ua = unitsW[i];
     var ub = unitsC[j];
     var la = FINAL_LETTERS[ua.letter] || ua.letter;
     var lb = FINAL_LETTERS[ub.letter] || ub.letter;
+    // תנועות שונות = לא נשמע אותו דבר גם אם העיצור זהה (זה בדיוק מה שהניקוד בא לפתור) -
+    // למשל "קלקול" (שורוק) מול "מקלקל" (צירה) חולקים עיצורים בלי לחרוז באמת.
+    if (ua.vowel !== ub.vowel) break;
     var consonantScore = letterMatchScore(la, lb);
-    // עיצורים שלא נשמעים דומה בכלל - זה מספיק כדי לעצור (גם אם התנועה במקרה זהה)
-    if (consonantScore === 0) break;
-    var vowelMatch = ua.vowel === ub.vowel;
-    // אם התנועה שונה זה לא "חרוז מלא" באותה הברה, אבל עדיין יכול להיות חרוז קרוב/עיצורי -
-    // ממשיכים את הרצף עם ניקוד חלקי, במקום לעצור לגמרי (כדי לא לאבד זוגות כמו שלום/עולם)
-    score += consonantScore + (vowelMatch ? 3 : 0);
-    if (stillExact && vowelMatch && consonantScore === 3) {
-      exactRun += 1;
-    } else {
-      stillExact = false;
+    if (consonantScore === 0) {
+      // עיצור פתיחה שונה לגמרי, אבל אותה תנועה בדיוק - זו בדיוק המהות של "חרוז" אמיתי
+      // (כמו "קלקול/שלשול" - קוּל מול שוּל, אותה תנועה, עיצור פתיחה שונה). מתירים את זה פעם
+      // אחת ואז עוצרים - זה תמיד המקום שבו מתחילה ההברה המתחרזת, אין טעם להמשיך מעבר לו.
+      // (רק אם יש כאן תנועה אמיתית ולא "שוואית" - אחרת זו סתם התחלה מקרית של המילים).
+      if (ua.vowel !== "_") {
+        score += 3;
+        runLength += 1;
+      }
+      break;
     }
+    score += consonantScore + 3;
+    exactRun += 1;
     runLength += 1;
     i -= 1;
     j -= 1;
@@ -183,12 +187,12 @@ function rhymeScore(word, candidate) {
 
 function rhymeStrength(result) {
   if (result.method === "phonetic") {
-    // exactRun = כמה יחידות ברצף מתאימות גם בעיצור וגם בתנועה (חרוז מלא, לא רק קרוב)
+    // exactRun = כמה הברות מתאימות בול (עיצור+תנועה) ברצף מהסוף. runLength יכול להיות גדול
+    // ב-1 יותר מ-exactRun אם הרצף הסתיים ב"פתיחת הברה חופשית" (אותה תנועה, עיצור פתיחה שונה -
+    // כמו "קלקול/שלשול") - זה עדיין חרוז אמיתי, פשוט לא באותה רמת ודאות כמו התאמה מלאה.
     if (result.exactRun >= 2) return { label: "חרוז מושלם", cls: "perfect" };
-    if (result.exactRun >= 1 && result.runLength >= 2) return { label: "חרוז חזק", cls: "strong" };
-    if (result.exactRun >= 1) return { label: "חרוז בינוני", cls: "medium" };
-    if (result.runLength >= 2) return { label: "חרוז קרוב", cls: "medium" };
-    return { label: "חרוז רחוק", cls: "weak" };
+    if (result.runLength >= 2) return { label: "חרוז חזק", cls: "strong" };
+    return { label: "חרוז בינוני", cls: "medium" };
   }
   // גיבוי מבוסס אותיות בלבד (למילים בלי נתוני ניקוד, כמו מילים אישיות חדשות)
   if (result.runLength >= 4 && result.score >= 10) return { label: "חרוז מושלם", cls: "perfect" };
